@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>Индекс упущенной прибыли</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { background: #0E0C0A !important; }
+  body { background: #0E0C0A !important; color: #F2EDE8 !important; font-family: 'Inter', sans-serif; min-height: 100vh; overflow-x: hidden; -webkit-text-size-adjust: 100%; }
+
+  #screen-landing { background: #0E0C0A; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; text-align: center; position: relative; overflow: hidden; }
+  #screen-landing::before { content: ''; position: absolute; top: -200px; left: 50%; transform: translateX(-50%); width: 600px; height: 600px; background: radial-gradient(circle, rgba(232,52,90,0.15) 0%, transparent 70%); pointer-events: none; }
+
+  .badge { display: inline-block; border: 1px solid #2E2A26; border-radius: 100px; padding: 6px 18px; font-size: 12px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: #7A736C; margin-bottom: 40px; }
+
+  .quiz-title { font-family: 'Playfair Display', serif; font-size: clamp(36px, 7vw, 72px); font-weight: 900; line-height: 1.05; letter-spacing: -0.02em; margin-bottom: 32px; color: #F2EDE8; }
+  .quiz-title .accent { color: #E8345A; }
+
+  .hook { font-size: clamp(15px, 2.5vw, 18px); color: #7A736C; line-height: 1.65; max-width: 520px; margin: 0 auto 48px; }
+  .hook strong { color: #F2EDE8; font-weight: 600; }
+
+  .btn-start { background: #E8345A; color: #fff; border: none; border-radius: 12px; padding: 18px 52px; font-size: 16px; font-weight: 600; cursor: pointer; letter-spacing: 0.03em; position: relative; -webkit-appearance: none; font-family: 'Inter', sans-serif; }
+  .btn-start::after { content: ''; position: absolute; inset: -4px; border-radius: 16px; border: 1px solid rgba(232,52,90,0.25); animation: pulse-ring 2s ease-out infinite; }
+  @keyframes pulse-ring { 0% { opacity:1; transform:scale(1); } 100% { opacity:0; transform:scale(1.18); } }
+
+  .sub-hint { margin-top: 20px; font-size: 13px; color: #7A736C; }
+
+  #screen-quiz { display: none; background: #0E0C0A; min-height: 100vh; padding: 0 24px 60px; }
+
+  .quiz-header { position: sticky; top: 0; background: #0E0C0A; padding: 20px 0 16px; z-index: 10; border-bottom: 1px solid #2E2A26; margin-bottom: 40px; }
+  .progress-meta { display: flex; justify-content: space-between; align-items: center; max-width: 640px; margin: 0 auto 12px; font-size: 13px; color: #7A736C; }
+  .progress-bar-wrap { max-width: 640px; margin: 0 auto; height: 3px; background: #2E2A26; border-radius: 2px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: #E8345A; border-radius: 2px; transition: width 0.4s ease; }
+
+  .block-label { max-width: 640px; margin: 0 auto 10px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #C9965A; font-weight: 500; }
+  .question-wrap { max-width: 640px; margin: 0 auto; }
+  .question-num { font-size: 12px; color: #7A736C; margin-bottom: 12px; letter-spacing: 0.06em; }
+  .question-text { font-family: 'Playfair Display', serif; font-size: clamp(20px, 3.5vw, 26px); font-weight: 700; line-height: 1.35; margin-bottom: 32px; color: #F2EDE8; }
+
+  .answers { display: flex; flex-direction: column; gap: 12px; }
+  .answer-btn { background: #1A1714; border: 1px solid #2E2A26; border-radius: 12px; padding: 18px 22px; text-align: left; cursor: pointer; font-size: 15px; color: #F2EDE8; line-height: 1.5; display: flex; align-items: flex-start; gap: 14px; -webkit-appearance: none; width: 100%; font-family: 'Inter', sans-serif; }
+  .answer-btn.selected { border-color: #E8345A; background: #2A1018; }
+  .answer-dot { width: 20px; height: 20px; min-width: 20px; border-radius: 50%; border: 1.5px solid #2E2A26; margin-top: 2px; background: transparent; flex-shrink: 0; }
+  .answer-btn.selected .answer-dot { border-color: #E8345A; background: #E8345A; }
+  .answer-text { color: #F2EDE8; flex: 1; }
+
+  .nav-row { max-width: 640px; margin: 32px auto 0; display: flex; justify-content: flex-end; }
+  .btn-next { background: #E8345A; color: #fff; border: none; border-radius: 10px; padding: 14px 40px; font-size: 15px; font-weight: 600; cursor: pointer; opacity: 0.35; pointer-events: none; -webkit-appearance: none; font-family: 'Inter', sans-serif; }
+  .btn-next.active { opacity: 1; pointer-events: all; }
+
+  #screen-result { display: none; background: #0E0C0A; min-height: 100vh; padding: 60px 24px 80px; }
+  .result-wrap { max-width: 620px; margin: 0 auto; }
+
+  .result-eyebrow { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #7A736C; margin-bottom: 16px; }
+  .result-level { font-family: 'Playfair Display', serif; font-size: clamp(22px, 4vw, 34px); font-weight: 900; line-height: 1.2; margin-bottom: 12px; color: #F2EDE8; }
+  .result-score-line { font-size: 13px; color: #7A736C; margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid #2E2A26; }
+  .result-score-line span { color: #C9965A; font-weight: 600; }
+
+  .block-scores { display: flex; flex-direction: column; gap: 10px; margin-bottom: 36px; }
+  .block-score-item { background: #1A1714; border: 1px solid #2E2A26; border-radius: 10px; padding: 14px 16px; }
+  .block-score-item.weakest { border-color: #E8345A; background: #2A1018; }
+  .bs-label { font-size: 11px; color: #7A736C; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+  .block-score-item.weakest .bs-label { color: #FF6B8A; }
+  .bs-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; color: #F2EDE8; }
+  .bs-score { font-size: 12px; color: #7A736C; margin-bottom: 8px; }
+  .bs-bar { height: 3px; background: #2E2A26; border-radius: 2px; overflow: hidden; }
+  .bs-fill { height: 100%; border-radius: 2px; background: #7A736C; transition: width 0.8s ease 0.3s; }
+  .block-score-item.weakest .bs-fill { background: #E8345A; }
+
+  .result-text { font-size: 16px; line-height: 1.75; color: #C4BDB7; margin-bottom: 32px; }
+  .result-text p { margin-bottom: 16px; }
+  .result-text p:last-child { margin-bottom: 0; }
+  .result-text strong { color: #F2EDE8; font-weight: 600; }
+
+  .quick-solution { background: #1A1714; border: 1px solid #2E2A26; border-left: 3px solid #C9965A; border-radius: 12px; padding: 24px 22px; margin-bottom: 32px; }
+  .qs-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #C9965A; font-weight: 600; margin-bottom: 12px; }
+  .qs-title { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; margin-bottom: 12px; color: #F2EDE8; }
+  .qs-text { font-size: 14px; line-height: 1.75; color: #C4BDB7; }
+  .qs-text strong { color: #F2EDE8; }
+
+  .tg-block { background: #1A1714; border: 1px solid rgba(232,52,90,0.25); border-radius: 16px; padding: 28px 24px 24px; margin-bottom: 16px; }
+  .tg-block-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #FF6B8A; font-weight: 600; margin-bottom: 12px; }
+  .tg-block-text { font-size: 17px; font-weight: 500; line-height: 1.6; color: #F2EDE8; margin-bottom: 20px; }
+
+  .btn-tg { display: flex; align-items: center; justify-content: center; gap: 10px; background: #E8345A; color: #fff; border: none; border-radius: 12px; padding: 18px 40px; font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none; width: 100%; -webkit-appearance: none; font-family: 'Inter', sans-serif; }
+
+  .copyright { display: flex; align-items: center; gap: 6px; padding-top: 16px; border-top: 1px solid #2E2A26; margin-top: 16px; }
+  .copyright span { font-size: 11px; color: #3E3A36; letter-spacing: 0.06em; }
+  .copyright .nick { color: #4E4A46; font-weight: 500; }
+
+  .restart-link { display: block; text-align: center; margin-top: 20px; font-size: 13px; color: #7A736C; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+</style>
+</head>
+<body>
+
+<div id="screen-landing">
+  <div class="badge">Диагностика · 2 минуты</div>
+  <h1 class="quiz-title">Индекс<br><span class="accent">упущенной</span><br>прибыли</h1>
+  <p class="hook">Незнание <strong>этих 3 вещей</strong> про свою ЦА стоит в среднем от <strong>2 500 000 ₽</strong> недополученной прибыли в полугодие/год. Узнай свою точку роста за 2 минуты — и варианты быстрых решений.</p>
+  <button class="btn-start" onclick="startQuiz()">НАЧАТЬ</button>
+  <p class="sub-hint">15 вопросов · бесплатно · результат сразу</p>
+</div>
+
+<div id="screen-quiz">
+  <div class="quiz-header">
+    <div class="progress-meta">
+      <span id="progress-text">Вопрос 1 из 15</span>
+      <span id="progress-pct">0%</span>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+  <div class="question-wrap">
+    <div class="block-label" id="block-label"></div>
+    <div class="question-num" id="question-num"></div>
+    <div class="question-text" id="question-text"></div>
+    <div class="answers" id="answers"></div>
+    <div class="nav-row">
+      <button class="btn-next" id="btn-next" onclick="nextQuestion()">Далее →</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-result">
+  <div class="result-wrap">
+    <div class="result-eyebrow">Ваш результат</div>
+    <div class="result-level" id="result-level"></div>
+    <div class="result-score-line" id="result-score-line"></div>
+    <div class="block-scores" id="block-scores"></div>
+    <div class="result-text" id="result-text"></div>
+    <div class="quick-solution" id="result-quick"></div>
+    <div class="tg-block">
+      <div class="tg-block-label">↓ Следующий шаг</div>
+      <p class="tg-block-text" id="tg-subtitle"></p>
+      <a href="https://t.me/magicbyalice" target="_blank" class="btn-tg">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8l-1.69 7.96c-.12.56-.46.7-.93.43l-2.57-1.9-1.24 1.2c-.14.14-.26.26-.52.26l.18-2.63 4.74-4.28c.21-.18-.04-.28-.32-.1L8.34 14.5l-2.52-.79c-.55-.17-.56-.55.11-.81l9.86-3.8c.46-.17.86.11.85.7z" fill="white"/></svg>
+        Перейти в телеграм-канал
+      </a>
+      <div class="copyright">
+        <span>Методика</span>
+        <span class="nick">@alice.abrikosova</span>
+        <span>· Индекс упущенной прибыли</span>
+      </div>
+    </div>
+    <span class="restart-link" onclick="restart()">Пройти тест заново</span>
+  </div>
+</div>
+
+<script>
+  document.documentElement.setAttribute('style','background:#0E0C0A!important');
+  document.body.setAttribute('style','background:#0E0C0A!important;color:#F2EDE8!important');
+
+  var BLOCKS = [
+    { name: 'Желания', label: 'Блок 1 — Желания аудитории' },
+    { name: 'Страхи', label: 'Блок 2 — Барьеры и ограничения' },
+    { name: 'Поведение', label: 'Блок 3 — Поведение аудитории' }
+  ];
+
+  var QUESTIONS = [
+    { block:0, text:'Вы можете дословно процитировать, как ваш клиент описывает свою проблему — его словами, не вашими формулировками?', answers:[{text:'Да, у меня есть конкретные цитаты из переписок',score:2},{text:'Примерно представляю, но не дословно',score:1},{text:'Описываю проблему своими формулировками, не его',score:0}] },
+    { block:0, text:'Когда последний раз вы заходили в переписку с клиентом и выписывали его реальный запрос дословно?', answers:[{text:'На этой неделе — делаю это регулярно',score:2},{text:'Было пару месяцев назад',score:1},{text:'Никогда не делала такого',score:0}] },
+    { block:0, text:'Вы знаете, ЧЕГО на самом деле хочет аудитория — не "решить проблему", а что конкретно изменится в её жизни, состоянии, ощущениях?', answers:[{text:'Да, могу описать подробно',score:2},{text:'Есть общее понимание',score:1},{text:'Не задумывалась так глубоко',score:0}] },
+    { block:0, text:'Вы можете назвать 3 конкретные эмоции, которые клиент хочет почувствовать после покупки вашего продукта?', answers:[{text:'Да, легко назову',score:2},{text:'Назову одну, дальше сложно',score:1},{text:'Нет, не думала в этом разрезе',score:0}] },
+    { block:0, text:'Вы знаете, как выглядит "счастливое будущее" вашего клиента в деталях — что материально, что в состоянии, что изменится вокруг?', answers:[{text:'Да, вижу картину в деталях',score:2},{text:'В общих чертах',score:1},{text:'Нет',score:0}] },
+    { block:1, text:'Вы знаете реальную причину, почему клиент откладывает покупку — не "дорого" или "не сейчас", а что именно он боится получить?', answers:[{text:'Да, знаю конкретный страх',score:2},{text:'Предполагаю, но не уверена',score:1},{text:'Думаю, что просто "дорого" или "не сейчас"',score:0}] },
+    { block:1, text:'Проводили кастдев (короткий созвон 15 минут с клиентом) за последние 3 месяца?', answers:[{text:'Да, и не один',score:2},{text:'Делала это давно, не системно',score:1},{text:'Никогда не проводила',score:0}] },
+    { block:1, text:'Вы можете назвать топ-3 возражения вашей аудитории — теми фразами, которые они реально пишут или говорят?', answers:[{text:'Да, дословно',score:2},{text:'Помню общий смысл',score:1},{text:'Нет',score:0}] },
+    { block:1, text:'Вы знаете, что аудитория боится получить от вас конкретно — какой негативный опыт они переносят на вас?', answers:[{text:'Да, понимаю это чётко',score:2},{text:'Есть догадки',score:1},{text:'Не задумывалась об этом',score:0}] },
+    { block:1, text:'Вы понимаете разницу между тем, что клиент говорит вслух ("дорого", "подумаю"), и тем, что он думает на самом деле?', answers:[{text:'Да, чётко различаю',score:2},{text:'Иногда замечаю',score:1},{text:'Нет, воспринимаю слова буквально',score:0}] },
+    { block:2, text:'Вы знаете, куда уходит потенциальный клиент, если не покупает у вас — к кому конкретно или что выбирает вместо?', answers:[{text:'Да, знаю конкретных конкурентов и альтернативы',score:2},{text:'Есть предположения',score:1},{text:'Нет',score:0}] },
+    { block:2, text:'Вы можете описать путь клиента от просмотра вашего контента до покупки — что он делает, куда смотрит, сколько думает?', answers:[{text:'Да, понимаю всю цепочку',score:2},{text:'Понимаю частично',score:1},{text:'Нет',score:0}] },
+    { block:2, text:'Вы знаете, какие неправильные действия ваш клиент уже пробовал сам до прихода к вам — и почему это не сработало?', answers:[{text:'Да, знаю и использую это в контенте',score:2},{text:'Примерно догадываюсь',score:1},{text:'Нет',score:0}] },
+    { block:2, text:'Вы понимаете, в какую ловушку попадает клиент, если продолжит решать проблему без вас?', answers:[{text:'Да, вижу чётко и говорю об этом в контенте',score:2},{text:'Есть общее ощущение',score:1},{text:'Нет',score:0}] },
+    { block:2, text:'Вы знаете, сколько времени проходит у клиента от "увидел вас" до "купил" — и что происходит в этой паузе?', answers:[{text:'Да, отслеживаю и выстраиваю контент под эту паузу',score:2},{text:'Примерно представляю',score:1},{text:'Нет, не замеряла',score:0}] }
+  ];
+
+  // Вариативные куски для уровня 2 по слабому блоку
+  var LVL2_WEAK = {
+    0: '<p><strong>Ваша главная точка роста — блок "Желания".</strong> Вы знаете что болит, но не знаете как клиент это формулирует своими словами. Итог — контент написан "правильно", но не цепляет. Человек читает и думает "ну да, интересно" — и не покупает. Потому что не услышал себя в ваших словах. Не понял, как конкретно вы поможете.</p>',
+    1: '<p><strong>Ваша главная точка роста — блок "Страхи".</strong> Вы не знаете реальных причин почему не покупают. Думаете — дорого или не сейчас. На самом деле, ваши люди боятся конкретного негативного опыта, который вы не замечаете и не закрываете как возражение. Каждый такой человек уходит думать — и не возвращается.</p>',
+    2: '<p><strong>Ваша главная точка роста — блок "Поведение".</strong> Вы не видите куда уходит клиент, если не купил у вас. Значит не понимаете с чем конкурируете на самом деле — и не можете выстроить аргументацию которая переключает выбор на вас.</p>'
+  };
+
+  var RESULTS = [
+    {
+      range: [0,8],
+      level: '"Продаёте предположениям, не аудитории"',
+      quickSolution: { title: 'Быстрое решение', text: 'Зайдите в переписку с последними 5 клиентами или потенциальными клиентами. Скопируйте дословно, как они описывают свою проблему — их словами, не вашими. Не пересказывайте. Именно эти фразы — основа вашего следующего поста, хука, оффера. Это первый и самый быстрый способ закрыть дыру в блоке "Желания".<br><br>Не забудьте: после создания контента напишите своим "подвисшим" перепискам с предложением почитать целевой, под их запросы, контент. Сделаете всё правильно — и сможете закрыть 1–4 продажи.' },
+      tg: 'В моём телеграм-канале разбираю, как выстроить систему контента и продаж — чтобы максимально монетизировать ваш потенциал.',
+      html: '<p>Ваш результат показывает: все три блока в красной зоне. Вы не знаете дословных желаний аудитории, не понимаете реальных причин почему не покупают — и не видите, где покупают, если не у вас.</p><p><strong>Вот механика потери денег — конкретно:</strong><br>Вы создаёте контент из своей головы → он не попадает в реальный запрос → аудитория проходит мимо → вы делаете больше контента в надежде что зайдёт → не заходит → выгорание → продажи случайные, на сарафане. Круг замкнулся.</p><p>Цена этих ошибок (говорю по опыту реальных проектов) — от <strong>2 500 000 ₽</strong> недополученной прибыли в полугодие/год.</p><p>Тут дело не в вашей экспертности, я верю что вы крутой эксперт с сильными знаниями. Просто между вами и аудиторией стоит стена из предположений — а не реальное понимание.</p>'
+    },
+    {
+      range: [9,16],
+      level: '"Знаете в общем, но теряете на деталях"',
+      quickSolution: { title: 'Быстрое решение', text: 'Соберите все известные данные о вашей аудитории: из переписок, контакта с клиентами, которые заплатили вам деньги. Формат: запросы, состояние минус, состояние плюс (желаемое), что останавливает (страхи, преграды).<br><br>Потом прочитайте в моём тг-канале о методике, как правильно составлять вовлекающий, сильный контент, который даёт деньги. Это ваша точка роста.' },
+      tg: 'В моём телеграм-канале разбираю, как выстроить систему контента и продаж — чтобы максимально монетизировать ваш потенциал.',
+      html: '<p>Общее понимание вашей аудитории есть. Но один блок просел сильнее остальных — и именно там ваши потери.</p>{{WEAK_BLOCK}}<p>Детали решают. Проработка психологии поведения вашей аудитории позволит выйти на стабильную прибыль от <strong>2 500 000 ₽ в полугодие/год</strong>.</p>'
+    },
+    {
+      range: [17,24],
+      level: '"Знаете аудиторию, но деньги уходят мимо кассы"',
+      quickSolution: { title: 'Быстрое решение', text: 'Ваша текущая задача:<br><br><strong>1.</strong> Составить маршрутную карту ваших продаж и запусков. Что делали конкретно от и до, что сработало, что нет.<br><strong>2.</strong> Определить точки на проработку (в том числе прочитайте контент в моём тг-канале, особенно про разборы из практики — так вы определите больше точек, которые, проработав, получите прибыль быстро).<br><strong>3.</strong> Создать план нового запуска и уточнить его верность об ментора.' },
+      tg: 'В моём телеграм-канале разбираю, как выстроить систему контента и продаж — чтобы максимально монетизировать ваш потенциал.',
+      html: '<p>Это самый парадоксальный результат. И самый частый у тех, кто на рынке уже не первый год.</p><p>Вы знаете свою аудиторию. Реально знаете — не на уровне "ну, примерно".</p><p>Вы пишете контент "про боль" — но не дословным языком клиента и по устаревшим паттернам.<br>Вы знаете страхи — но не закрываете их явно в контенте.<br>Вы понимаете поведение аудитории — но не выстроили цепочку от контента до покупки.</p><p>Проблема в том, что знание об аудитории есть — но оно не упаковано в конкретные хуки, офферы, смыслы, структуры продаж, которые работают прямо сейчас.</p><p>Из-за баннерной слепоты аудитория (она видела эти схемы запусков десятками) не реагирует и уходит. Вы тратите силы, а результат слабый.</p>'
+    },
+    {
+      range: [25,30],
+      level: '"База есть. Вопрос в том, что дальше"',
+      quickSolution: { title: 'Быстрое решение', text: 'База у вас закрыта, вопрос в другом. Вам важно заняться своим извлечением из рутины проекта и развивать вот эти направления:<br><br><strong>1.</strong> Авто-воронка на мини-продукт, который продаёт нон-стоп ваш правильно выстроенный контент в блогах.<br><strong>2.</strong> Теневой прогрев по сильным смыслам под вашу аудиторию.<br><strong>3.</strong> 1–2 крупных запуска в год.<br><br>Задача: масштабирование и восстановление ресурса. Ваш проект готов к расширению, вопрос в правильной системе.' },
+      tg: 'В телеграм-канале разбираю именно этот уровень задач — заходите.',
+      html: '<p>Вы в меньшинстве — серьёзно. Большинство экспертов на рынке работают с аудиторией на уровне догадок, вы — на уровне реального понимания.</p><p>Но посмотрите внимательно на блок где баллы чуть ниже — даже у вас там есть точка роста, которая позволит забустить проект и масштабировать.</p><p>На вашем этапе вопрос уже не "знаю ли я аудиторию" — а <strong>"как масштабировать это понимание в системный поток клиентов и контент, который работает без моего постоянного присутствия"</strong>.</p>'
+    }
+  ];
+
+  var currentQ = 0;
+  var answers = new Array(15).fill(null);
+  var selectedAnswer = null;
+
+  function startQuiz() {
+    document.getElementById('screen-landing').style.display = 'none';
+    document.getElementById('screen-quiz').style.display = 'block';
+    renderQuestion();
+  }
+
+  function renderQuestion() {
+    var q = QUESTIONS[currentQ];
+    var pct = Math.round((currentQ / 15) * 100);
+    document.getElementById('progress-text').textContent = 'Вопрос ' + (currentQ+1) + ' из 15';
+    document.getElementById('progress-pct').textContent = pct + '%';
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('block-label').textContent = BLOCKS[q.block].label;
+    document.getElementById('question-num').textContent = (currentQ+1) + ' / 15';
+    document.getElementById('question-text').textContent = q.text;
+
+    var answersEl = document.getElementById('answers');
+    answersEl.innerHTML = '';
+    q.answers.forEach(function(a, i) {
+      var btn = document.createElement('button');
+      btn.className = 'answer-btn' + (answers[currentQ] === i ? ' selected' : '');
+      var dot = document.createElement('span');
+      dot.className = 'answer-dot';
+      var txt = document.createElement('span');
+      txt.className = 'answer-text';
+      txt.textContent = a.text;
+      btn.appendChild(dot);
+      btn.appendChild(txt);
+      btn.onclick = function() { selectAnswer(i); };
+      answersEl.appendChild(btn);
+    });
+
+    selectedAnswer = answers[currentQ] !== null ? answers[currentQ] : null;
+    updateNextBtn();
+  }
+
+  function selectAnswer(idx) {
+    answers[currentQ] = idx;
+    selectedAnswer = idx;
+    document.querySelectorAll('.answer-btn').forEach(function(btn, i) {
+      btn.classList.toggle('selected', i === idx);
+    });
+    updateNextBtn();
+  }
+
+  function updateNextBtn() {
+    var btn = document.getElementById('btn-next');
+    if (selectedAnswer !== null && selectedAnswer !== undefined) {
+      btn.classList.add('active');
+      btn.textContent = currentQ === 14 ? 'Узнать результат →' : 'Далее →';
+    } else {
+      btn.classList.remove('active');
+      btn.textContent = 'Далее →';
+    }
+  }
+
+  function nextQuestion() {
+    if (selectedAnswer === null || selectedAnswer === undefined) return;
+    if (currentQ < 14) {
+      currentQ++;
+      selectedAnswer = answers[currentQ] !== null ? answers[currentQ] : null;
+      renderQuestion();
+      window.scrollTo(0,0);
+    } else {
+      showResult();
+    }
+  }
+
+  function showResult() {
+    document.getElementById('screen-quiz').style.display = 'none';
+    document.getElementById('screen-result').style.display = 'block';
+
+    var blockScores = [0,0,0];
+    QUESTIONS.forEach(function(q,i) {
+      if (answers[i] !== null && answers[i] !== undefined) {
+        blockScores[q.block] += q.answers[answers[i]].score;
+      }
+    });
+    var total = blockScores[0] + blockScores[1] + blockScores[2];
+    var minScore = Math.min(blockScores[0], blockScores[1], blockScores[2]);
+    var weakest = blockScores.indexOf(minScore);
+
+    var result = null;
+    for (var r = 0; r < RESULTS.length; r++) {
+      if (total >= RESULTS[r].range[0] && total <= RESULTS[r].range[1]) { result = RESULTS[r]; break; }
+    }
+
+    document.getElementById('result-level').textContent = result.level;
+    document.getElementById('result-score-line').innerHTML = 'Ваш балл: <span>' + total + ' из 30</span>';
+
+    var bsEl = document.getElementById('block-scores');
+    bsEl.innerHTML = '';
+    BLOCKS.forEach(function(b,i) {
+      var pct = Math.round((blockScores[i]/10)*100);
+      var isWeak = (i === weakest);
+      var item = document.createElement('div');
+      item.className = 'block-score-item' + (isWeak ? ' weakest' : '');
+      item.innerHTML =
+        '<div class="bs-label">' + (isWeak ? '⚠ Слабый блок' : 'Блок '+(i+1)) + '</div>' +
+        '<div class="bs-name">' + b.name + '</div>' +
+        '<div class="bs-score">' + blockScores[i] + ' из 10</div>' +
+        '<div class="bs-bar"><div class="bs-fill" style="width:0%" data-pct="' + pct + '"></div></div>';
+      bsEl.appendChild(item);
+    });
+
+    setTimeout(function() {
+      document.querySelectorAll('.bs-fill').forEach(function(el) {
+        el.style.width = el.getAttribute('data-pct') + '%';
+      });
+    }, 200);
+
+    // Персонализация уровня 2 — подставляем нужный абзац по слабому блоку
+    var html = result.html;
+    if (html.indexOf('{{WEAK_BLOCK}}') !== -1) {
+      html = html.replace('{{WEAK_BLOCK}}', LVL2_WEAK[weakest] || '');
+    }
+    document.getElementById('result-text').innerHTML = html;
+
+    document.getElementById('result-quick').innerHTML =
+      '<div class="qs-label">↓ Ваше быстрое решение</div>' +
+      '<div class="qs-title">' + result.quickSolution.title + '</div>' +
+      '<div class="qs-text">' + result.quickSolution.text + '</div>';
+
+    document.getElementById('tg-subtitle').textContent = result.tg;
+    window.scrollTo(0,0);
+  }
+
+  function restart() {
+    currentQ = 0;
+    answers = new Array(15).fill(null);
+    selectedAnswer = null;
+    document.getElementById('screen-result').style.display = 'none';
+    document.getElementById('screen-landing').style.display = 'flex';
+  }
+</script>
+</body>
+</html>
